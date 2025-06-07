@@ -20,18 +20,18 @@ holistic = mp_holistic.Holistic(
 )
 
 #lstm_model = LSTMModel()
-lstm_model = torch.load('lstm/lstm_temp.pth', map_location=torch.device('cpu'), weights_only=False)
-lstm_model.eval()  # Set to evaluation mode
+LSTM_MODEL = torch.load('lstm/lstm_temp.pth', map_location=torch.device('cpu'), weights_only=False)
+LSTM_MODEL.eval()  # Set to evaluation mode
 
-cnn_model = CNN()
-cnn_model.load_state_dict(torch.load('cnn/cnn.pth', map_location=torch.device('cpu'), weights_only=False))
-cnn_model.eval()  # Set to evaluation mode
+CNN_MODEL = CNN()
+CNN_MODEL.load_state_dict(torch.load('cnn/cnn.pth', map_location=torch.device('cpu'), weights_only=False))
+CNN_MODEL.eval()  # Set to evaluation mode
 
-encoder = Encoder()
-encoder.load_state_dict(torch.load('seq2seq/encoder.pth', map_location=torch.device('cpu'), weights_only=False))
+ENCODER = Encoder()
+ENCODER.load_state_dict(torch.load('seq2seq/encoder.pth', map_location=torch.device('cpu'), weights_only=False))
 
-decoder = Decoder()
-decoder.load_state_dict(torch.load('seq2seq/decoder.pth', map_location=torch.device('cpu'), weights_only=False))
+DECODER = Decoder()
+DECODER.load_state_dict(torch.load('seq2seq/decoder.pth', map_location=torch.device('cpu'), weights_only=False))
 
 # Define sign classes
 WORDS_LABEL = ["hello","meet", "my","name","nice", "please","sit", "yes", "you"] 
@@ -72,25 +72,24 @@ def draw_styled_landmarks(image, results):
                              )
 
 # For frame collection and sequence processing
-sequence_length = 50
-sequence = []
-predictions = []
-threshold = 0.8  # Confidence threshold
+SEQUENCE_LENGTH = 50  #FRAME_LENGTH
+SEQUENCE = []
+THRESHOLD = 0.8  # Confidence threshold
 
 cap = cv2.VideoCapture(0)
 
 # For FPS calculation
-prev_time = 0
-curr_time = 0
+PREV_TIME = 0
+CURR_TIME = 0
 
 # Initialize variables for alphabet tracking
-alphabet_token_dict = {}  # Dictionary to track predicted alphabets
-word_token_dict = {}  # Dictionary to track predicted words
-sentence = ""    # Sentence to store results
-last_detected_time = time.time()  # Time when hands were last detected
-hand_present = False  # Flag to track if hands are present
-sentence_reset_time = 0
-sentence_processed = False 
+ALPHABET_TOKEN_DICT = {}  # Dictionary to track predicted alphabets
+WORD_TOKEN_DICT = {}  # Dictionary to track predicted words
+SENTENCE = ""    # Sentence to store results
+LAST_DETECTED_TIME = time.time()  # Time when hands were last detected
+HAND_PRESENT = False  # Flag to track if hands are present
+SENTENCE_RESET_TIME = 0
+SENTENCE_PROCESSED = False 
 
 try:
     while cap.isOpened():
@@ -98,8 +97,8 @@ try:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             MODE = 1 if MODE == 0 else 0
             print(f"Mode changed to: {'LSTM' if MODE == 1 else 'CNN'}")
-            alphabet_token_dict = {}
-            word_token_dict = {}
+            ALPHABET_TOKEN_DICT = {}
+            WORD_TOKEN_DICT = {}
         success, image = cap.read()
 
         if not success:
@@ -107,9 +106,9 @@ try:
             continue
             
         # Calculate FPS
-        curr_time = time.time()
-        fps = 1 / (curr_time - prev_time) if prev_time > 0 else 0
-        prev_time = curr_time
+        CURR_TIME = time.time()
+        fps = 1 / (CURR_TIME - PREV_TIME) if PREV_TIME > 0 else 0
+        PREV_TIME = CURR_TIME
         
         # Process the frame
         results = holistic.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -128,28 +127,28 @@ try:
         # Extract landmarks for prediction
         if results.left_hand_landmarks or results.right_hand_landmarks:
             frame_features = extract_landmarks(results)
-            hand_present = True
-            last_detected_time = time.time()
+            HAND_PRESENT = True
+            LAST_DETECTED_TIME = time.time()
             word=""
-            sentence_processed = False 
+            SENTENCE_PROCESSED = False 
 
             
             if MODE == 1:
                 
-                sequence.append(frame_features)
+                SEQUENCE.append(frame_features)
                 
                 # Keep only the most recent frames
-                if len(sequence) > sequence_length:
-                    sequence = sequence[-sequence_length:]
+                if len(SEQUENCE) > SEQUENCE_LENGTH:
+                    SEQUENCE = SEQUENCE[-SEQUENCE_LENGTH:]
                     
                 # If we have enough frames, make a prediction
-                if len(sequence) == sequence_length:
+                if len(SEQUENCE) == SEQUENCE_LENGTH:
                     # Prepare the input tensor - explicitly on CPU
-                    input_tensor = torch.tensor(np.array([sequence]), dtype=torch.float32)
+                    input_tensor = torch.tensor(np.array([SEQUENCE]), dtype=torch.float32)
                     
                     # Get the model prediction
                     with torch.no_grad():
-                        output = lstm_model(input_tensor)
+                        output = LSTM_MODEL(input_tensor)
                         
                         
                     # Get the predicted class and confidence
@@ -157,13 +156,13 @@ try:
                     predicted_class = WORDS_LABEL[predicted_class_idx.item()]
                     
                     # Display prediction if confidence is above threshold
-                    if confidence.item() > threshold:
+                    if confidence.item() > THRESHOLD:
                         #add the predicted class and count to the token dictionary
                         word=predicted_class
-                        if predicted_class in word_token_dict:
-                            word_token_dict[predicted_class] += 1
+                        if predicted_class in WORD_TOKEN_DICT:
+                            WORD_TOKEN_DICT[predicted_class] += 1
                         else:
-                            word_token_dict[predicted_class] = 1
+                            WORD_TOKEN_DICT[predicted_class] = 1
                         cv2.putText(image, f'Sign: {predicted_class}', (10, 70), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
                         cv2.putText(image, f'Confidence: {confidence.item():.2f}', (10, 110), 
@@ -173,17 +172,17 @@ try:
                 token = {}
                 input_tensor = torch.tensor(np.array([frame_features]), dtype=torch.float32)
                 with torch.no_grad():
-                    output = cnn_model(input_tensor)
+                    output = CNN_MODEL(input_tensor)
                 # Get the predicted class and confidence
                 confidence, predicted_class_idx = torch.max(output, dim=1)
                 predicted_class = ALPHABETS_LABEL[predicted_class_idx.item()]
                 # Display prediction if confidence is above threshold
-                if confidence.item() > threshold:
+                if confidence.item() > THRESHOLD:
                     # Add the predicted class to the token dictionary
-                    if predicted_class in alphabet_token_dict:
-                        alphabet_token_dict[predicted_class] += 1
+                    if predicted_class in ALPHABET_TOKEN_DICT:
+                        ALPHABET_TOKEN_DICT[predicted_class] += 1
                     else:
-                        alphabet_token_dict[predicted_class] = 1
+                        ALPHABET_TOKEN_DICT[predicted_class] = 1
                     cv2.putText(image, f'Sign: {predicted_class}', (10, 70), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
                     cv2.putText(image, f'Confidence: {confidence.item():.2f}', (10, 110), 
@@ -194,38 +193,38 @@ try:
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                 
         else:
-            sequence=[]
-            if hand_present:  # If hands were previously detected but not anymore
-                hand_present = False
+            SEQUENCE=[]
+            if HAND_PRESENT:  # If hands were previously detected but not anymore
+                HAND_PRESENT = False
                 # In CNN mode, add most frequent alphabet to sentence when hands disappear
-                if MODE == 0 and alphabet_token_dict:  # Only if we have collected some predictions
-                    most_frequent_alphabet = max(alphabet_token_dict, key=alphabet_token_dict.get) if alphabet_token_dict else ""
+                if MODE == 0 and ALPHABET_TOKEN_DICT:  # Only if we have collected some predictions
+                    most_frequent_alphabet = max(ALPHABET_TOKEN_DICT, key=ALPHABET_TOKEN_DICT.get) if ALPHABET_TOKEN_DICT else ""
                     if most_frequent_alphabet:  # Only if we have collected some predictions
-                        sentence += most_frequent_alphabet
-                    alphabet_token_dict = {}  # Reset the token dictionary
+                        SENTENCE += most_frequent_alphabet
+                    ALPHABET_TOKEN_DICT = {}  # Reset the token dictionary
                 else: 
-                    most_frequent_word = max(word_token_dict, key=word_token_dict.get) if word_token_dict else ""
+                    most_frequent_word = max(WORD_TOKEN_DICT, key=WORD_TOKEN_DICT.get) if WORD_TOKEN_DICT else ""
                     if most_frequent_word:  # Only if we have collected some predictions
-                        sentence += most_frequent_word + " "
-                    word_token_dict = {}  # Reset the token dictionary
+                        SENTENCE += most_frequent_word + " "
+                    WORD_TOKEN_DICT = {}  # Reset the token dictionary
             
             # Check if no hand sign is detected for 5 seconds
-            if time.time() - last_detected_time > 6.5 and sentence and not sentence_processed:
-                sentence = evaluate(encoder, decoder, sentence)
-                sentence_processed = True
-                print(f"Final sentence: {sentence}")
-                sentence_reset_time = time.time() + 3.5
+            if time.time() - LAST_DETECTED_TIME > 6.5 and SENTENCE and not SENTENCE_PROCESSED:
+                SENTENCE = evaluate(ENCODER, DECODER, SENTENCE)
+                SENTENCE_PROCESSED = True
+                print(f"Final sentence: {SENTENCE}")
+                SENTENCE_RESET_TIME = time.time() + 3.5
 
-            if sentence_reset_time > 0 and time.time() >= sentence_reset_time:
-                sentence = ""
-                sentence_reset_time = 0    
+            if SENTENCE_RESET_TIME > 0 and time.time() >= SENTENCE_RESET_TIME:
+                SENTENCE = ""
+                SENTENCE_RESET_TIME = 0    
                 
             
             # Display a message
             cv2.putText(image, "No hands detected", (10, 70), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
         # Always display the current sentence
-        cv2.putText(image, f'Sentence:{sentence}', (20, 450), 
+        cv2.putText(image, f'Sentence:{SENTENCE}', (20, 450), 
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
         cv2.imshow('Sign Language Recognition', image)
         # Exit on ESC key
