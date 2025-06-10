@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_vocab_size = 11, embed_size = 256, hidden_size = 512):
+    def __init__(self, input_vocab_size = 14, embed_size = 256, hidden_size = 512):
         super(Encoder, self).__init__()
         self.embedding = nn.Embedding(input_vocab_size, embed_size)
         self.gru = nn.GRU(embed_size, hidden_size, batch_first=True)
