@@ -19,8 +19,8 @@ holistic = mp_holistic.Holistic(
     min_tracking_confidence=0.5
 )
 
-#lstm_model = LSTMModel()
-LSTM_MODEL = torch.load('lstm/lstm_temp.pth', map_location=torch.device('cpu'), weights_only=False)
+LSTM_MODEL = LSTMModel()
+LSTM_MODEL.load_state_dict(torch.load('lstm/lstm.pth', map_location=torch.device('cpu'), weights_only=False))
 LSTM_MODEL.eval()  # Set to evaluation mode
 
 CNN_MODEL = CNN()
@@ -72,7 +72,7 @@ def draw_styled_landmarks(image, results):
                              )
 
 # For frame collection and sequence processing
-SEQUENCE_LENGTH = 50  #FRAME_LENGTH
+SEQUENCE_LENGTH = 80  #FRAME_LENGTH
 SEQUENCE = []
 THRESHOLD = 0.8  # Confidence threshold
 
@@ -149,6 +149,8 @@ try:
                     # Get the model prediction
                     with torch.no_grad():
                         output = LSTM_MODEL(input_tensor)
+                        output = torch.softmax(output, dim=1)  # Apply softmax to get probabilities
+                        print(output)
                         
                         
                     # Get the predicted class and confidence
@@ -158,7 +160,6 @@ try:
                     # Display prediction if confidence is above threshold
                     if confidence.item() > THRESHOLD:
                         #add the predicted class and count to the token dictionary
-                        word=predicted_class
                         if predicted_class in WORD_TOKEN_DICT:
                             WORD_TOKEN_DICT[predicted_class] += 1
                         else:
@@ -167,12 +168,18 @@ try:
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
                         cv2.putText(image, f'Confidence: {confidence.item():.2f}', (10, 110), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+                    else:
+                        # Display a message
+                        cv2.putText(image, "No sign detected", (10, 70), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                     
             else:
                 token = {}
                 input_tensor = torch.tensor(np.array([frame_features]), dtype=torch.float32)
                 with torch.no_grad():
-                    output = CNN_MODEL(input_tensor)
+                    output = CNN_MODEL(input_tensor) 
+                    output = torch.softmax(output, dim=1)  # Apply softmax to get probabilities
+                    print(output)
                 # Get the predicted class and confidence
                 confidence, predicted_class_idx = torch.max(output, dim=1)
                 predicted_class = ALPHABETS_LABEL[predicted_class_idx.item()]
