@@ -1,6 +1,15 @@
 import pandas as pd
 import torch
 
+
+# from encoder_architecture import Encoder
+# from decoder_architecture import Decoder
+# ENCODER = Encoder()
+# ENCODER.load_state_dict(torch.load('encoder_final.pth', map_location=torch.device('cpu'), weights_only=False))
+
+# DECODER = Decoder()
+# DECODER.load_state_dict(torch.load('decoder_final.pth', map_location=torch.device('cpu'), weights_only=False))
+
 DATA = pd.read_csv('seq2seq/train_data.tsv', sep='\t', header=None, names=['input', 'target'])
 DATA = DATA[1:]
 
@@ -20,11 +29,105 @@ input_vocab = [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN] + list(set(all_input_words))
 
 target_vocab = [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN] + list(set(all_target_words))
 
-input_word2idx = {word : idx for idx,word in enumerate(input_vocab)}
-input_idx2word = {idx : word for idx,word in input_word2idx.items()} # Cách này đúng
+input_word2idx = {'<PAD>': 0,
+ '<SOS>': 1,
+ '<EOS>': 2,
+ 'nice': 3,
+ 'meet': 4,
+ 'please': 5,
+ 'you': 6,
+ 'name': 7,
+ 't': 8,
+ 'm': 9,
+ 'hello': 10,
+ 'o': 11,
+ 'sit': 12,
+ 'yes': 13}
 
-target_word2idx = {word : idx for idx,word in enumerate(target_vocab)}
-target_idx2word = {idx : word for idx,word in enumerate(target_vocab)} # Cách xây dựng trực tiếp target_idx2word từ target_vocab
+input_idx2word = {'<PAD>': 0,
+ '<SOS>': 1,
+ '<EOS>': 2,
+ 'nice': 3,
+ 'meet': 4,
+ 'please': 5,
+ 'you': 6,
+ 'name': 7,
+ 't': 8,
+ 'm': 9,
+ 'hello': 10,
+ 'o': 11,
+ 'sit': 12,
+ 'yes': 13} # Cách này đúng
+
+target_word2idx ={'<PAD>': 0,
+ '<SOS>': 1,
+ '<EOS>': 2,
+ 'meet': 3,
+ 'is': 4,
+ 'nice.': 5,
+ 'please': 6,
+ "that's": 7,
+ 'down,': 8,
+ 'tom!': 9,
+ 'are': 10,
+ 'name': 11,
+ 'yes,': 12,
+ "let's": 13,
+ 'you,': 14,
+ 'meet!': 15,
+ 'nice': 16,
+ 'you!': 17,
+ 'how': 18,
+ 'sit': 19,
+ 'yes.': 20,
+ 'down.': 21,
+ 'please.': 22,
+ 'your': 23,
+ 'name?': 24,
+ "what's": 25,
+ 'to': 26,
+ 'you?': 27,
+ 'my': 28,
+ 'please!': 29,
+ 'tom.': 30,
+ 'you.': 31,
+ 'hello!': 32,
+ 'hello,': 33}
+target_idx2word = {0: '<PAD>',
+ 1: '<SOS>',
+ 2: '<EOS>',
+ 3: 'meet',
+ 4: 'is',
+ 5: 'nice.',
+ 6: 'please',
+ 7: "that's",
+ 8: 'down,',
+ 9: 'tom!',
+ 10: 'are',
+ 11: 'name',
+ 12: 'yes,',
+ 13: "let's",
+ 14: 'you,',
+ 15: 'meet!',
+ 16: 'nice',
+ 17: 'you!',
+ 18: 'how',
+ 19: 'sit',
+ 20: 'yes.',
+ 21: 'down.',
+ 22: 'please.',
+ 23: 'your',
+ 24: 'name?',
+ 25: "what's",
+ 26: 'to',
+ 27: 'you?',
+ 28: 'my',
+ 29: 'please!',
+ 30: 'tom.',
+ 31: 'you.',
+ 32: 'hello!',
+ 33: 'hello,'} # Cách xây dựng trực tiếp target_idx2word từ target_vocab
+
 
 def encode_input_for_eval(sentence):
     return [input_word2idx.get(word, input_word2idx['<PAD>']) for word in sentence.lower().split()]
@@ -74,3 +177,5 @@ def evaluate(encoder, decoder, sentence, input_word2idx = input_word2idx, target
     
     return ' '.join(decoded_words)
 
+# if __name__ == "__main__":
+#     print(evaluate(ENCODER, DECODER, "meet T O M"))

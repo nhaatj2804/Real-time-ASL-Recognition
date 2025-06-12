@@ -5,7 +5,7 @@ import time
 import os
 import torch
 from lstm.lstm_architecture import LSTMModel
-from cnn.cnn_architecture import CNN
+from mlp.mlp_architecture import MLPModel
 from seq2seq.encoder_architecture import Encoder
 from seq2seq.decoder_architecture import Decoder
 from seq2seq.predict import evaluate
@@ -23,24 +23,24 @@ LSTM_MODEL = LSTMModel()
 LSTM_MODEL.load_state_dict(torch.load('lstm/lstm.pth', map_location=torch.device('cpu'), weights_only=False))
 LSTM_MODEL.eval()  # Set to evaluation mode
 
-CNN_MODEL = CNN()
-CNN_MODEL.load_state_dict(torch.load('cnn/cnn.pth', map_location=torch.device('cpu'), weights_only=False))
-CNN_MODEL.eval()  # Set to evaluation mode
+MLP_MODEL = MLPModel()
+MLP_MODEL.load_state_dict(torch.load('mlp/mlp.pth', map_location=torch.device('cpu'), weights_only=False))
+MLP_MODEL.eval()  # Set to evaluation mode
 
 ENCODER = Encoder()
-ENCODER.load_state_dict(torch.load('seq2seq/encoder.pth', map_location=torch.device('cpu'), weights_only=False))
+ENCODER.load_state_dict(torch.load('seq2seq/encoder_final.pth', map_location=torch.device('cpu'), weights_only=False))
 
 DECODER = Decoder()
-DECODER.load_state_dict(torch.load('seq2seq/decoder.pth', map_location=torch.device('cpu'), weights_only=False))
+DECODER.load_state_dict(torch.load('seq2seq/decoder_final.pth', map_location=torch.device('cpu'), weights_only=False))
 
 # Define sign classes
-WORDS_LABEL = ["hello","meet", "my","name","nice", "please","sit", "yes", "you"] 
+WORDS_LABEL = ["you","name", "my","yes","sit", "hello","meet", "nice", "please"] 
 
 ALPHABETS_LABEL = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
     'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
     'T', 'U', 'V', 'W', 'X', 'Y']
 
-MODE = 1  # 1 for LSTM, 0 for CNN
+MODE = 1  # 1 for LSTM, 0 for MLP
 
 def extract_landmarks(results):
     # Extract pose landmarks
@@ -52,7 +52,7 @@ def extract_landmarks(results):
     
     # Concatenate all landmarks into a feature vector
     if(MODE==1): return np.concatenate([pose, lh, rh]) #LSTM
-    return np.concatenate([lh, rh]) #CNN
+    return np.concatenate([lh, rh]) #MLP
 
 def draw_styled_landmarks(image, results):
     # # Draw pose connections
@@ -74,7 +74,7 @@ def draw_styled_landmarks(image, results):
 # For frame collection and sequence processing
 SEQUENCE_LENGTH = 80  #FRAME_LENGTH
 SEQUENCE = []
-THRESHOLD = 0.8  # Confidence threshold
+THRESHOLD = 0.2  # Confidence threshold
 
 cap = cv2.VideoCapture(0)
 
@@ -96,7 +96,7 @@ try:
         #changing mode by pressing 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
             MODE = 1 if MODE == 0 else 0
-            print(f"Mode changed to: {'LSTM' if MODE == 1 else 'CNN'}")
+            print(f"Mode changed to: {'LSTM' if MODE == 1 else 'MLP'}")
             ALPHABET_TOKEN_DICT = {}
             WORD_TOKEN_DICT = {}
         success, image = cap.read()
@@ -121,7 +121,7 @@ try:
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
         
         # Display mode
-        cv2.putText(image, f'Mode: {"LSTM" if MODE == 1 else "CNN"}', (10, 50),
+        cv2.putText(image, f'Mode: {"LSTM" if MODE == 1 else "MLP"}', (10, 50),
                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
         
         # Extract landmarks for prediction
@@ -177,7 +177,7 @@ try:
                 token = {}
                 input_tensor = torch.tensor(np.array([frame_features]), dtype=torch.float32)
                 with torch.no_grad():
-                    output = CNN_MODEL(input_tensor) 
+                    output = MLP_MODEL(input_tensor) 
                     output = torch.softmax(output, dim=1)  # Apply softmax to get probabilities
                     print(output)
                 # Get the predicted class and confidence
@@ -203,11 +203,11 @@ try:
             SEQUENCE=[]
             if HAND_PRESENT:  # If hands were previously detected but not anymore
                 HAND_PRESENT = False
-                # In CNN mode, add most frequent alphabet to sentence when hands disappear
+                # In MLP mode, add most frequent alphabet to sentence when hands disappear
                 if MODE == 0 and ALPHABET_TOKEN_DICT:  # Only if we have collected some predictions
                     most_frequent_alphabet = max(ALPHABET_TOKEN_DICT, key=ALPHABET_TOKEN_DICT.get) if ALPHABET_TOKEN_DICT else ""
                     if most_frequent_alphabet:  # Only if we have collected some predictions
-                        SENTENCE += most_frequent_alphabet
+                        SENTENCE += most_frequent_alphabet + " "
                     ALPHABET_TOKEN_DICT = {}  # Reset the token dictionary
                 else: 
                     most_frequent_word = max(WORD_TOKEN_DICT, key=WORD_TOKEN_DICT.get) if WORD_TOKEN_DICT else ""
