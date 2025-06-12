@@ -6,7 +6,7 @@ A real-time American Sign Language (ASL) recognition system using computer visio
 
 - Real-time hand and pose detection using MediaPipe
 - Two recognition modes:
-  - CNN mode for recognizing ASL alphabets
+  - MLP mode for recognizing ASL alphabets
   - LSTM mode for recognizing complete words
 - Seq2seq model for sentence processing
 - Live video feed with visualization of hand landmarks
@@ -31,12 +31,12 @@ python app.py
 
 ### Controls
 
-- Press 'q' to switch between CNN (alphabet) and LSTM (word) modes
+- Press 'q' to switch between MLP (alphabet) and LSTM (word) modes
 - Press 'ESC' to exit the application
 
 ### Recognition Modes
 
-1. **CNN Mode (Alphabet Recognition)**
+1. **MLP Mode (Alphabet Recognition)**
 
    - Recognizes individual ASL alphabets (A-Z, except J)
    - Shows real-time confidence scores
@@ -51,6 +51,6 @@ python app.py
 ## Project Structure
 
 - `app.py`: Main application file
-- `cnn/`: CNN model for alphabet recognition
+- `mlp/`: MLP model for alphabet recognition
 - `lstm/`: LSTM model for word recognition
 - `seq2seq/`: Sequence-to-sequence model for sentence processing
